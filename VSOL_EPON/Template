@@ -1,0 +1,583 @@
+zabbix_export:
+  version: '6.0'
+  date: '2025-02-05T11:18:50Z'
+  groups:
+    - uuid: 7df96b18c230490a9a0a9e2307226338
+      name: Templates
+  templates:
+    - uuid: 4053696a223745e8ac4633c1b757782e
+      template: 'Template - OLT Vsol EPON'
+      name: 'Template - OLT Vsol EPON'
+      groups:
+        - name: Templates
+      items:
+        - uuid: 14e5b92e964345c4a30d56433e662049
+          name: Uptime
+          type: SNMP_AGENT
+          snmp_oid: iso.3.6.1.2.1.1.3.0
+          key: 1.3.6.1.2.1.1.3.0
+          delay: 5m
+          history: 31d
+          units: Uptime
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '0.01'
+          tags:
+            - tag: Application
+              value: Uptime
+        - uuid: df8d929311c340e4ab2355da2c6cd2fb
+          name: Temperatura
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.37950.1.1.5.10.12.5.9.0
+          key: 1.3.6.1.4.1.37950.1.1.5.10.12.5.9.0
+          units: C
+          tags:
+            - tag: Application
+              value: Temperatura
+        - uuid: 1cc4417ce4314541808658130b26cbec
+          name: 'Uso de CPU'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.37950.1.1.5.10.12.3.0
+          key: load.cpu
+          delay: 5m
+          history: 31d
+          value_type: FLOAT
+          tags:
+            - tag: Application
+              value: CPU
+          triggers:
+            - uuid: d37536da6fc8490988d9210c02c911c6
+              expression: 'last(/Template - OLT Vsol EPON/load.cpu)>70'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'last(/Template - OLT Vsol EPON/load.cpu)=-65'
+              name: 'Carga de CPU alta ({ITEM.LASTVALUE1})'
+              priority: HIGH
+              manual_close: 'YES'
+        - uuid: 9eb1814f126444c4b6aaa7c97c5bf4d0
+          name: 'Uso de Memória'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.37950.1.1.5.10.12.4.0
+          key: load.memory
+          delay: 5m
+          history: 31d
+          value_type: FLOAT
+          tags:
+            - tag: Application
+              value: Memoria
+          triggers:
+            - uuid: 5d909059891842ac9045f452ef5c9d77
+              expression: 'last(/Template - OLT Vsol EPON/load.memory)>80'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'last(/Template - OLT Vsol EPON/load.memory)=-75'
+              name: 'Uso de Memoria alta ({ITEM.LASTVALUE1})'
+              priority: HIGH
+              manual_close: 'YES'
+      discovery_rules:
+        - uuid: fbf7f0afd5934d81868a1a074a6e904f
+          name: 'Descoberta de Interfaces PON'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SNMPDESC},1.3.6.1.4.1.37950.1.1.5.10.1.2.1.1.2]'
+          key: descoberta.interfaces.pon.bee
+          delay: 5m
+          item_prototypes:
+            - uuid: 9a6ca780df404b27bb65ecff08c505ad
+              name: 'Interface [{#SNMPDESC}]: Autorizadas'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.37950.1.1.5.12.1.27.1.2.{#SNMPINDEX}'
+              key: '1.3.6.1.4.1.37950.1.1.5.12.1.27.1.2.[{#SNMPINDEX}]'
+              history: 30d
+              tags:
+                - tag: Application
+                  value: 'PON Autorizadas'
+            - uuid: 27f180a588314adc8c058da468ccec4b
+              name: 'Interface [{#SNMPDESC}]: Onlines'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.37950.1.1.5.12.1.27.1.3.{#SNMPINDEX}'
+              key: '1.3.6.1.4.1.37950.1.1.5.12.1.27.1.3.[{#SNMPINDEX}]'
+              history: 31d
+              tags:
+                - tag: Application
+                  value: 'PON Onlines'
+            - uuid: 24177c14a62242928405d8eb8dd0216f
+              name: 'Interface [{#SNMPDESC}]: Offlines'
+              type: CALCULATED
+              key: 'calculado.onus.off.[{#SNMPINDEX}]'
+              history: 31d
+              params: |
+                last(//1.3.6.1.4.1.37950.1.1.5.12.1.27.1.2.[{#SNMPINDEX}])
+                - last(//1.3.6.1.4.1.37950.1.1.5.12.1.27.1.3.[{#SNMPINDEX}])
+              tags:
+                - tag: Application
+                  value: 'PON Offlines'
+            - uuid: eae11874c35b42d3b160337aee00c9e6
+              name: 'Status da {#PONNAME}'
+              type: SNMP_AGENT
+              snmp_oid: 'iso.3.6.1.4.1.37950.1.1.5.10.1.2.3.1.2.{#SNMPINDEX}'
+              key: 'PorPontStatus.[{#PONNAME}]'
+              delay: 5m
+              trigger_prototypes:
+                - uuid: f0489ae08c6d40a980f0eb187c0acd08
+                  expression: 'last(/Template - OLT Vsol EPON/PorPontStatus.[{#PONNAME}])=0'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT Vsol EPON/PorPontStatus.[{#PONNAME}])=1'
+                  name: '{#PONNAME} Fora de Operação!'
+                  priority: DISASTER
+                  manual_close: 'YES'
+        - uuid: ef334dd96d7147aa9f0968159cb7348c
+          name: 'ONU PON1'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery.onuP1[{#NOMEDOCLIENTE},.1.3.6.1.4.1.37950.1.1.5.12.1.25.1.9.1]'
+          key: discovery.onuP1
+          delay: 5m
+          item_prototypes:
+            - uuid: 33d73551642d4973b96b14b18cc604c2
+              name: 'Status PON 1 ID: {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.37950.1.1.5.12.1.25.1.14.1.{#SNMPINDEX}'
+              key: 'onu.status.P1[{#NOMEDOCLIENTE}]'
+              delay: 5m
+              history: 7d
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: e831557f671f4c9abeba73e1c6f80ff1
+                  expression: 'last(/Template - OLT Vsol EPON/onu.status.P1[{#NOMEDOCLIENTE}])=0'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT Vsol EPON/onu.status.P1[{#NOMEDOCLIENTE}])=1'
+                  name: 'STATUS - {#NOMEDOCLIENTE} OFFLINE!'
+                  priority: HIGH
+                  description: |
+                    1 - Online
+                    0 - Offline
+                  manual_close: 'YES'
+            - uuid: 5c6452f4443940189778177a29828087
+              name: 'SINAL {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7.1.{#SNMPINDEX}'
+              key: 'onuRxPowerP1.[{#NOMEDOCLIENTE}]'
+              delay: 5m
+              value_type: FLOAT
+              units: dBm
+              preprocessing:
+                - type: RTRIM
+                  parameters:
+                    - ' dBm)"'
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.00mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.01mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.02mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.03mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.04mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.05mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.06mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.07mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.08mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.09mW ('
+              trigger_prototypes:
+                - uuid: abdae747dc5e46738e7f3a52e583c149
+                  expression: 'last(/Template - OLT Vsol EPON/onuRxPowerP1.[{#NOMEDOCLIENTE}])=-0.00'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT Vsol EPON/onuRxPowerP1.[{#NOMEDOCLIENTE}])<-25'
+                  name: 'SINAL {#NOMEDOCLIENTE} Potência Baixa({ITEM.LASTVALUE1})'
+                  priority: AVERAGE
+                  manual_close: 'YES'
+          graph_prototypes:
+            - uuid: 48d1bee5b1b94fabb0bb5c94b551aa3e
+              name: 'Sinal ONU {#NOMEDOCLIENTE}'
+              graph_items:
+                - sortorder: '1'
+                  color: FF0000
+                  item:
+                    host: 'Template - OLT Vsol EPON'
+                    key: 'onuRxPowerP1.[{#NOMEDOCLIENTE}]'
+        - uuid: c27af5e84a264c319f73b90e1c993016
+          name: 'ONU PON2'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery.onuP2[{#NOMEDOCLIENTE},.1.3.6.1.4.1.37950.1.1.5.12.1.25.1.9.2]'
+          key: discovery.onuP2
+          delay: 5m
+          item_prototypes:
+            - uuid: e07b9f0b72554ec3935bf16517d8a048
+              name: 'Status PON 2 ID: {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.37950.1.1.5.12.1.25.1.14.2.{#SNMPINDEX}'
+              key: 'onu.status.P2[{#NOMEDOCLIENTE}]'
+              delay: 5m
+              history: 7d
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: 8667cfa34d884fe58ab1b365a8cbbc6a
+                  expression: 'last(/Template - OLT Vsol EPON/onu.status.P2[{#NOMEDOCLIENTE}])=0'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT Vsol EPON/onu.status.P2[{#NOMEDOCLIENTE}])=1'
+                  name: 'STATUS - {#NOMEDOCLIENTE} OFFLINE!'
+                  priority: HIGH
+                  manual_close: 'YES'
+            - uuid: 538af66364594bb8ae80f9ccb5e3f0c5
+              name: 'SINAL {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7.2.{#SNMPINDEX}'
+              key: 'onuRxPowerP2.[{#NOMEDOCLIENTE}]'
+              delay: 5m
+              value_type: FLOAT
+              units: dBm
+              preprocessing:
+                - type: RTRIM
+                  parameters:
+                    - ' dBm)"'
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.00mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.01mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.02mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.03mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.04mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.05mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.06mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.07mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.08mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.09mW ('
+              trigger_prototypes:
+                - uuid: 21e534031ac24140b316ae0b3c653c1c
+                  expression: 'last(/Template - OLT Vsol EPON/onuRxPowerP2.[{#NOMEDOCLIENTE}])<-25'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT Vsol EPON/onuRxPowerP2.[{#NOMEDOCLIENTE}])>=-24'
+                  name: 'SINAL {#NOMEDOCLIENTE} Potência Baixa({ITEM.LASTVALUE1})'
+                  priority: AVERAGE
+                  manual_close: 'YES'
+          graph_prototypes:
+            - uuid: 0e294c4f83f64caa9296564d95453b8f
+              name: 'Sinal {#NOMEDOCLIENTE}'
+              graph_items:
+                - sortorder: '1'
+                  color: FF0000
+                  item:
+                    host: 'Template - OLT Vsol EPON'
+                    key: 'onuRxPowerP2.[{#NOMEDOCLIENTE}]'
+        - uuid: 50f2850aa4374d34850678c3513822f9
+          name: 'ONU PON3'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery.onuP3[{#NOMEDOCLIENTE},.1.3.6.1.4.1.37950.1.1.5.12.1.25.1.9.3]'
+          key: discovery.onuP3
+          delay: 5m
+          item_prototypes:
+            - uuid: 897055d7fe33432db413abd0d3b39ed9
+              name: 'Status PON 3 ID: {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.37950.1.1.5.12.1.25.1.14.3.{#SNMPINDEX}'
+              key: 'onu.status.P3[{#NOMEDOCLIENTE}]'
+              delay: 5m
+              history: 7d
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: 4750e0fe1521420ca0f838f2af352693
+                  expression: 'last(/Template - OLT Vsol EPON/onu.status.P3[{#NOMEDOCLIENTE}])=0'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT Vsol EPON/onu.status.P3[{#NOMEDOCLIENTE}])=1'
+                  name: 'STATUS - {#NOMEDOCLIENTE} OFFLINE!'
+                  priority: HIGH
+                  manual_close: 'YES'
+            - uuid: 3d2f517b7161433f94fa967eac802107
+              name: 'SINAL {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7.3.{#SNMPINDEX}'
+              key: 'onuRxPowerP3.[{#NOMEDOCLIENTE}]'
+              delay: 5m
+              value_type: FLOAT
+              units: dBm
+              preprocessing:
+                - type: RTRIM
+                  parameters:
+                    - ' dBm)"'
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.00mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.01mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.02mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.03mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.04mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.05mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.06mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.06mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.08mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.09mW ('
+              trigger_prototypes:
+                - uuid: 463035e4720a42618715ddfd18afbd4c
+                  expression: 'last(/Template - OLT Vsol EPON/onuRxPowerP3.[{#NOMEDOCLIENTE}])<-25'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT Vsol EPON/onuRxPowerP3.[{#NOMEDOCLIENTE}])>=-23'
+                  name: 'SINAL {#NOMEDOCLIENTE} Potência Baixa({ITEM.LASTVALUE1})'
+                  priority: AVERAGE
+                  manual_close: 'YES'
+          graph_prototypes:
+            - uuid: 351beef1d7674ccb8bc5474038146b3c
+              name: 'Sinal ONU_P3 {#NOMEDOCLIENTE}'
+              graph_items:
+                - sortorder: '1'
+                  color: FF0000
+                  item:
+                    host: 'Template - OLT Vsol EPON'
+                    key: 'onuRxPowerP3.[{#NOMEDOCLIENTE}]'
+        - uuid: 2aa4fb9943834311a9e6edec2d52405c
+          name: 'ONU PON4'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery.onuP4[{#NOMEDOCLIENTE},.1.3.6.1.4.1.37950.1.1.5.12.1.25.1.9.4]'
+          key: discovery.onuP4
+          delay: 5m
+          item_prototypes:
+            - uuid: e47cf2d955a84e819d5a39c147f0b8f0
+              name: 'Status PON 4 ID: {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.37950.1.1.5.12.1.25.1.14.4.{#SNMPINDEX}'
+              key: 'onu.status.P4[{#NOMEDOCLIENTE}]'
+              delay: 5m
+              history: 7d
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: 4cd85786b0c24647bfa254ed0b4a233f
+                  expression: 'last(/Template - OLT Vsol EPON/onu.status.P4[{#NOMEDOCLIENTE}])=0'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT Vsol EPON/onu.status.P4[{#NOMEDOCLIENTE}])=1'
+                  name: 'STATUS - {#NOMEDOCLIENTE} OFFLINE!'
+                  priority: HIGH
+                  manual_close: 'YES'
+            - uuid: 70a5a1f7ba224f41886606b8a6439402
+              name: 'SINAL {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7.4.{#SNMPINDEX}'
+              key: 'onuRxPowerP4.[{#NOMEDOCLIENTE}]'
+              delay: 5m
+              value_type: FLOAT
+              units: dBm
+              preprocessing:
+                - type: RTRIM
+                  parameters:
+                    - ' dBm)"'
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.00mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.01mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.02mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.03mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.04mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.05mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.06mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.07mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.08mW ('
+                - type: LTRIM
+                  parameters:
+                    - 'Value "0.09mW ('
+              trigger_prototypes:
+                - uuid: 4b17fa96997f4a6bb32be83b9d0da14f
+                  expression: 'last(/Template - OLT Vsol EPON/onuRxPowerP4.[{#NOMEDOCLIENTE}])<-25'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT Vsol EPON/onuRxPowerP4.[{#NOMEDOCLIENTE}])>=-24'
+                  name: 'SINAL {#NOMEDOCLIENTE} Potência Baixa({ITEM.LASTVALUE1})'
+                  priority: AVERAGE
+                  manual_close: 'YES'
+          graph_prototypes:
+            - uuid: 333f8cb7853c439c84f37d2aa7effe41
+              name: 'Sinal ONU_P4 {#NOMEDOCLIENTE}'
+              graph_items:
+                - sortorder: '1'
+                  color: FF0000
+                  item:
+                    host: 'Template - OLT Vsol EPON'
+                    key: 'onuRxPowerP4.[{#NOMEDOCLIENTE}]'
+        - uuid: 071a043ac6404534880a9e1f78f71ebd
+          name: 'Uplink Info'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery.uplink[{#NOMEUPLINK},iso.3.6.1.4.1.37950.1.1.5.10.1.1.1.1.20]'
+          key: discovery.uplink
+          delay: 60m
+          item_prototypes:
+            - uuid: 8bc9a49185994cbf8d15d9c2950d2da7
+              name: 'Uplink Status {#NOMEUPLINK}'
+              type: SNMP_AGENT
+              snmp_oid: 'iso.3.6.1.4.1.37950.1.1.5.10.1.2.3.1.2.{#SNMPINDEX}'
+              key: 'ponPortLinkStatus.[{#NOMEUPLINK}]'
+              delay: 60m
+            - uuid: 62e12759f33c4a55bcc196b9af23c2b4
+              name: 'Velocidade Uplink {#NOMEUPLINK}'
+              type: SNMP_AGENT
+              snmp_oid: 'iso.3.6.1.4.1.37950.1.1.5.10.1.1.3.1.3.{#SNMPINDEX}'
+              key: 'uplinkPortLinkSpeed.[{#NOMEUPLINK}]'
+              delay: 60m
+              units: bps
+              preprocessing:
+                - type: STR_REPLACE
+                  parameters:
+                    - '-'
+                    - '0'
+                - type: RTRIM
+                  parameters:
+                    - 'M Full'
+                - type: MULTIPLIER
+                  parameters:
+                    - '1000000'
+              trigger_prototypes:
+                - uuid: 6a799d16c52c490d95f85bf5a6126863
+                  expression: 'last(/Template - OLT Vsol EPON/uplinkPortLinkSpeed.[{#NOMEUPLINK}])="100 Mbps" or last(/Template - OLT Vsol EPON/uplinkPortLinkSpeed.[{#NOMEUPLINK}])="10 Mbps"'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT Vsol EPON/uplinkPortLinkSpeed.[{#NOMEUPLINK}])="1 Gbps"'
+                  name: 'VELOCIDADE DA PORTA [{#NOMEUPLINK} ABAIXO DO NORMAL ({ITEM.LASTVALUE1})'
+                  priority: HIGH
+                  manual_close: 'YES'
+        - uuid: 5881be11678c475f97227b95a669a972
+          name: 'Network Interfaces Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#IFALIAS},1.3.6.1.2.1.31.1.1.1.18,{#IFNAME},1.3.6.1.2.1.31.1.1.1.1,{#IFTYPE},1.3.6.1.2.1.2.2.1.3]'
+          key: net.if.discovery
+          delay: 1h
+          filter:
+            evaltype: OR
+            conditions:
+              - macro: '{#IFALIAS}'
+                value: EPON0/
+                formulaid: A
+              - macro: '{#IFTYPE}'
+                value: '6'
+                formulaid: B
+          description: |
+            Discovering interfaces from IF-MIB. Interfaces are not discovered:
+            - with down(2) Administrative status
+            - with notPresent(6) Operational status
+            - loopbacks
+          item_prototypes:
+            - uuid: 62d5d0871eb948c59165fa0bb9743215
+              name: 'Interface {#IFNAME}({#IFALIAS}): Bits received'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}'
+              key: 'net.if.in[ifHCInOctets.{#SNMPINDEX}]'
+              delay: 5m
+              history: 31d
+              units: bps
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+              tags:
+                - tag: Application
+                  value: 'Network interfaces'
+            - uuid: b2da782669c04cdf98e0da5f1ac119ba
+              name: 'Interface {#IFNAME}({#IFALIAS}): Bits sent'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}'
+              key: 'net.if.out[ifHCOutOctets.{#SNMPINDEX}]'
+              delay: 5m
+              history: 30d
+              units: bps
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+              tags:
+                - tag: Application
+                  value: 'Network interfaces'
+            - uuid: 56cc90ef1ce9403ebd83a660621eab55
+              name: 'Interface {#IFNAME}({#IFALIAS}): Operational status'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}'
+              key: 'net.if.status[ifOperStatus.{#SNMPINDEX}]'
+              delay: 5m
+              history: 30d
+              trends: '0'
+              tags:
+                - tag: Application
+                  value: 'Network interfaces'
+  graphs:
+    - uuid: 99126c9a934043df86e341a99bd80a5c
+      name: 'CPU Memoria & Temperatura'
+      graph_items:
+        - sortorder: '1'
+          color: 1A7C11
+          item:
+            host: 'Template - OLT Vsol EPON'
+            key: 1.3.6.1.2.1.1.3.0
+        - sortorder: '2'
+          color: F63100
+          item:
+            host: 'Template - OLT Vsol EPON'
+            key: load.cpu
+        - sortorder: '3'
+          color: 2774A4
+          item:
+            host: 'Template - OLT Vsol EPON'
+            key: load.memory

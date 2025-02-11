@@ -1,0 +1,249 @@
+zabbix_export:
+  version: '6.0'
+  date: '2025-02-11T13:44:00Z'
+  groups:
+    - uuid: 7df96b18c230490a9a0a9e2307226338
+      name: Templates
+  templates:
+    - uuid: 12683dbb91b848268341f6ff2ffafbdc
+      template: 'Template - OLT EPON - Intelbras'
+      name: 'Template - OLT EPON - Intelbras'
+      groups:
+        - name: Templates
+      items:
+        - uuid: 9a7026e3786940f0965367d7ff67fb6a
+          name: 'Uso de Memoria'
+          type: CALCULATED
+          key: caculando.porcentagem.memoria.uso
+          delay: 60m
+          value_type: FLOAT
+          units: '%'
+          params: '100*(last(//1.3.6.1.4.1.13464.1.2.1.1.2.12.0)-last(//1.3.6.1.4.1.13464.1.2.1.1.2.13.0))/last(//1.3.6.1.4.1.13464.1.2.1.1.2.12.0)'
+        - uuid: ecd4348a1a2a4bef91d9fbbbf59efa4d
+          name: 'Uso de CPU %'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.13464.1.2.1.1.2.11.0
+          key: cpu.load
+          delay: 60m
+          units: '%'
+          triggers:
+            - uuid: 9c9bb59f73204bfab3ebc2165afb1cdc
+              expression: 'last(/Template - OLT EPON - Intelbras/cpu.load)=0>70'
+              name: 'Carga de CPU alta ({ITEM.LASTVALUE1})'
+              priority: HIGH
+              manual_close: 'YES'
+        - uuid: 5a95a40c489449d7ac941c08e3000884
+          name: 'Memoria Livre'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.13464.1.2.1.1.2.13.0
+          key: memoria.livre
+          delay: 60m
+          value_type: FLOAT
+          units: MB
+        - uuid: e5ee59e52b1a479f9de3c13e8f5d69cd
+          name: 'Memória Total'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.13464.1.2.1.1.2.12.0
+          key: memoria.total
+          delay: 60m
+          value_type: FLOAT
+          units: MB
+        - uuid: e8d8c97d90cc4f28a4f5bcfa94ff4a5b
+          name: Uptime
+          type: SNMP_AGENT
+          snmp_oid: iso.3.6.1.2.1.1.3.0
+          key: UpTime
+          delay: 10m
+          units: uptime
+          description: 'The time since the network management portion of the system was last re-initialized.'
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '0.01'
+      discovery_rules:
+        - uuid: a964498d62b34e4e8c8c5a6240fba47e
+          name: 'PON Info'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery.pon[{#PONNAME},1.3.6.1.4.1.13464.1.13.2.2.1.4]'
+          key: discovery.pon
+          delay: 30m
+          item_prototypes:
+            - uuid: 26f3c7d114a44e0d8284b6e01f27a216
+              name: 'Status da {#PONNAME}'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.13464.1.13.2.1.1.4.{#SNMPINDEX}'
+              key: 'ponOperStateIntelbras.[{#PONNAME}]'
+              delay: 30m
+              trigger_prototypes:
+                - uuid: 864f8777ad6b49bbaf1cf46c87a84911
+                  expression: 'last(/Template - OLT EPON - Intelbras/ponOperStateIntelbras.[{#PONNAME}])=1'
+                  name: '{#PONNAME} Fora de Operação!'
+                  priority: DISASTER
+                  manual_close: 'YES'
+        - uuid: ad0a97d7502d426da872cb1a15df8de4
+          name: ONU
+          type: SNMP_AGENT
+          snmp_oid: 'discovery.onu[{#NOMEDOCLIENTE},.1.3.6.1.4.1.13464.1.13.3.1.1.5.0.1]'
+          key: discoveryintelbras.onu.pon1
+          delay: 5m
+          lifetime: 1d
+          item_prototypes:
+            - uuid: 61ac5dd114b74a27a9e0f2c97fc59e98
+              name: 'ONU {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.13464.1.13.3.3.1.8.0.1.{#SNMPINDEX}'
+              key: 'OnuPotenciapon1.[{#NOMEDOCLIENTE}]'
+              delay: 2m
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: d8c5a8b50cfb411183dfb904b2e45287
+                  expression: 'last(/Template - OLT EPON - Intelbras/OnuPotenciapon1.[{#NOMEDOCLIENTE}])<-23'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT EPON - Intelbras/OnuPotenciapon1.[{#NOMEDOCLIENTE}])>=-20'
+                  name: 'SINAL {#NOMEDOCLIENTE} Potência baixa ({ITEM.LASTVALUE1})'
+                  priority: AVERAGE
+                  manual_close: 'YES'
+            - uuid: 2a0672fa3d2f42fea5eb5629790af230
+              name: 'ONU {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.13464.1.13.3.1.1.4.0.1.{#SNMPINDEX}'
+              key: 'OnuStatusPON1.[{#NOMEDOCLIENTE}]'
+              delay: 2m
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: 7f0a1388eb9746fc8ec6552f5d34e5dd
+                  expression: 'last(/Template - OLT EPON - Intelbras/OnuStatusPON1.[{#NOMEDOCLIENTE}])=0'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT EPON - Intelbras/OnuStatusPON1.[{#NOMEDOCLIENTE}])=1'
+                  name: 'OFFLINE {#NOMEDOCLIENTE} OFFLINE! ({ITEM.LASTVALUE1})'
+                  priority: HIGH
+                  manual_close: 'YES'
+        - uuid: 56823cc4aceb4792a5f051dae8fcff34
+          name: ONU
+          type: SNMP_AGENT
+          snmp_oid: 'discovery.onu[{#NOMEDOCLIENTE},.1.3.6.1.4.1.13464.1.13.3.1.1.5.0.2]'
+          key: discoveryintelbras.onu.pon2
+          delay: 5m
+          lifetime: 1d
+          item_prototypes:
+            - uuid: 4277e0beb1814419bbba80cc425cb647
+              name: 'ONU {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.13464.1.13.3.3.1.8.0.2.{#SNMPINDEX}'
+              key: 'OnuPotenciapon2.[{#NOMEDOCLIENTE}]'
+              delay: 2m
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: 2437ba30952b44ddb0d5580c3f6ea676
+                  expression: 'last(/Template - OLT EPON - Intelbras/OnuPotenciapon2.[{#NOMEDOCLIENTE}])<-27'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT EPON - Intelbras/OnuPotenciapon2.[{#NOMEDOCLIENTE}])>=-25'
+                  name: 'SINAL {#NOMEDOCLIENTE} Potência baixa ({ITEM.LASTVALUE1})'
+                  priority: AVERAGE
+                  manual_close: 'YES'
+            - uuid: 87952fcdc7154dc7b391d66ca12ba135
+              name: 'ONU {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.13464.1.13.3.1.1.4.0.2.{#SNMPINDEX}'
+              key: 'OnuStatusPON2.[{#NOMEDOCLIENTE}]'
+              delay: 2m
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: 16b5b2b4c042412cb3eb387bfc42ef89
+                  expression: 'last(/Template - OLT EPON - Intelbras/OnuStatusPON2.[{#NOMEDOCLIENTE}])=0'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT EPON - Intelbras/OnuStatusPON2.[{#NOMEDOCLIENTE}])=1'
+                  name: 'OFFLINE {#NOMEDOCLIENTE} OFFLINE!  ({ITEM.LASTVALUE1})'
+                  priority: HIGH
+        - uuid: fa12c9afdbf8483db3f1f9c1e4d3e511
+          name: ONU
+          type: SNMP_AGENT
+          snmp_oid: 'discovery.onu[{#NOMEDOCLIENTE},.1.3.6.1.4.1.13464.1.13.3.1.1.5.0.3]'
+          key: discoveryintelbras.onu.pon3
+          delay: 5m
+          lifetime: 1d
+          item_prototypes:
+            - uuid: 6cb09ed8efa54a10ba2e1db6971371f1
+              name: 'ONU {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.13464.1.13.3.3.1.8.0.3.{#SNMPINDEX}'
+              key: 'OnuPotenciapon3.[{#NOMEDOCLIENTE}]'
+              delay: 2m
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: 19e5bf541f0f4848839a8740bd3226b7
+                  expression: 'last(/Template - OLT EPON - Intelbras/OnuPotenciapon3.[{#NOMEDOCLIENTE}])<-26'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT EPON - Intelbras/OnuPotenciapon3.[{#NOMEDOCLIENTE}])>=-25'
+                  name: 'SINAL {#NOMEDOCLIENTE} Potência baixa ({ITEM.LASTVALUE1})'
+                  priority: AVERAGE
+                  manual_close: 'YES'
+            - uuid: 43c2dba1aeed4ec4a1ac286b2e5fccbc
+              name: 'ONU {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.13464.1.13.3.1.1.4.0.3.{#SNMPINDEX}'
+              key: 'OnuStatusPON3.[{#NOMEDOCLIENTE}]'
+              delay: 2m
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: cab5fb7313374d27953190191a57bfeb
+                  expression: 'last(/Template - OLT EPON - Intelbras/OnuStatusPON3.[{#NOMEDOCLIENTE}])=0'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT EPON - Intelbras/OnuStatusPON3.[{#NOMEDOCLIENTE}])=1'
+                  name: 'OFFLINE {#NOMEDOCLIENTE} OFFLINE! ({ITEM.LASTVALUE1})'
+                  priority: HIGH
+                  manual_close: 'YES'
+        - uuid: 4435c5689a93420c883793bd0b4bc037
+          name: ONU
+          type: SNMP_AGENT
+          snmp_oid: 'discovery.onu[{#NOMEDOCLIENTE},.1.3.6.1.4.1.13464.1.13.3.1.1.5.0.4]'
+          key: discoveryintelbras.onu.pon4
+          delay: 5m
+          lifetime: 1d
+          item_prototypes:
+            - uuid: 136acecd93e242b895e41356796409a0
+              name: 'ONU {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.13464.1.13.3.3.1.8.0.4.{#SNMPINDEX}'
+              key: 'OnuPotenciapon4.[{#NOMEDOCLIENTE}]'
+              delay: 2m
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: 5920be197b9249de8dd6a756189a42b8
+                  expression: 'last(/Template - OLT EPON - Intelbras/OnuPotenciapon4.[{#NOMEDOCLIENTE}])<-27'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT EPON - Intelbras/OnuPotenciapon4.[{#NOMEDOCLIENTE}])>=-24'
+                  name: 'SINAL {#NOMEDOCLIENTE} Potência baixa ({ITEM.LASTVALUE1})'
+                  priority: AVERAGE
+                  manual_close: 'YES'
+            - uuid: e5844a4305ba429d8f60b4464e37370e
+              name: 'ONU {#NOMEDOCLIENTE}'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.13464.1.13.3.1.1.4.0.4.{#SNMPINDEX}'
+              key: 'OnuStatusPON4.[{#NOMEDOCLIENTE}]'
+              delay: 2m
+              value_type: FLOAT
+              trigger_prototypes:
+                - uuid: ce737a17d4d94eca9bcad76b363c6739
+                  expression: 'last(/Template - OLT EPON - Intelbras/OnuStatusPON4.[{#NOMEDOCLIENTE}])=0'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template - OLT EPON - Intelbras/OnuStatusPON4.[{#NOMEDOCLIENTE}])=1'
+                  name: 'OFFLINE {#NOMEDOCLIENTE} OFFLINE! ({ITEM.LASTVALUE1})'
+                  priority: HIGH
+                  manual_close: 'YES'
+  graphs:
+    - uuid: dd4f4cf9c8f84e70a596aab913a8bb56
+      name: 'CPU e Memoria'
+      ymin_type_1: FIXED
+      ymax_type_1: FIXED
+      graph_items:
+        - sortorder: '1'
+          color: 1A7C11
+          item:
+            host: 'Template - OLT EPON - Intelbras'
+            key: cpu.load
+        - sortorder: '2'
+          color: F63100
+          item:
+            host: 'Template - OLT EPON - Intelbras'
+            key: caculando.porcentagem.memoria.uso
